@@ -1,0 +1,3 @@
+http://localtube {
+  reverse_proxy flask:8080
+}
