@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>🎵 音楽再生ページ</title>
+</head>
+<body>
+  <h1>🎧 音楽プレイヤー</h1>
+
+  <p><a href="{{ url_for('add') }}">➕ 新しい音楽を追加</a></p>
+
+  {% if songs %}
+    <ul>
+      {% for song in songs %}
+        <li>
+          <strong>{{ song[2] }}</strong> - {{ song[3] }}<br>
+          <audio id="audio{{ loop.index }}" controls preload="none">
+            <source src="{{ url_for('serve_music', filename=song[1]) }}" type="audio/mpeg">
+            このブラウザは audio 要素に対応していません。
+          </audio>
+          <br>
+          <button onclick="document.getElementById('audio{{ loop.index }}').play()">▶️ 再生</button>
+          <button onclick="document.getElementById('audio{{ loop.index }}').pause()">⏹ 停止</button>
+        </li>
+      {% endfor %}
+    </ul>
+  {% else %}
+    <p>まだ音楽がありません。<a href="{{ url_for('add') }}">➕ 追加しましょう！</a></p>
+  {% endif %}
+</body>
+</html>
