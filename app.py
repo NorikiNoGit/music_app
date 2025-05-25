@@ -78,6 +78,60 @@ def download_audio(url):
         conn.close()
 
 # ======================
+# データベース確認
+# ======================
+@app.route("/debug/db")
+def debug_db():
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM music ORDER BY created_at DESC")
+    rows = cursor.fetchall()
+    columns = [desc[0] for desc in cursor.description]
+    conn.close()
+    return render_template("debug_db.html", rows=rows, columns=columns)
+
+@app.route("/debug/edit/<int:music_id>", methods=["GET", "POST"])
+def edit_entry(music_id):
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+
+    if request.method == "POST":
+        title = request.form.get("title")
+        artist = request.form.get("artist")
+        tags = request.form.get("tags")
+        genre_ai = request.form.get("genre_ai")
+
+        cursor.execute("""
+            UPDATE music
+            SET title = ?, artist = ?, tags = ?, genre_ai = ?
+            WHERE id = ?
+        """, (title, artist, tags, genre_ai, music_id))
+
+        conn.commit()
+        conn.close()
+        return redirect(url_for("debug_db"))
+    
+    # GET: 現在の値を取得して表示
+    cursor.execute("SELECT title, artist, tags, genre_ai FROM music WHERE id = ?", (music_id,))
+    result = cursor.fetchone()
+    conn.close()
+
+    if result:
+        return render_template("edit_entry.html", music_id=music_id, title=result[0], artist=result[1], tags=result[2], genre_ai=result[3])
+    else:
+        return "❌ レコードが見つかりませんでした", 404
+
+@app.route("/debug/delete/<int:music_id>", methods=["POST"])
+def delete_entry(music_id):
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+    cursor.execute("DELETE FROM music WHERE id = ?", (music_id,))
+    conn.commit()
+    conn.close()
+    return redirect(url_for("debug_db"))
+
+
+# ======================
 # アプリ起動
 # ======================
 if __name__ == "__main__":
