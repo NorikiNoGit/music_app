@@ -8,7 +8,7 @@ import re
 app = Flask(__name__)
 
 # 設定
-MUSIC_DIR = "/mnt/musicshare"  # 実際のmp3保存場所（Samba共有）
+MUSIC_DIR = "/musicshare"  # 実際のmp3保存場所（Samba共有）
 DB_PATH = "music.db"           # SQLiteファイル
 
 def safe_filename(name):

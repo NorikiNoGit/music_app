@@ -6,6 +6,8 @@ services:
     container_name: localtube
     ports:
       - "8080:8080"
+    volumes:
+    - /mnt/musicshare:/musicshare
     networks:
       - webnet
 
