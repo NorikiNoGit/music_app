@@ -3,6 +3,7 @@ import os
 from yt_dlp import YoutubeDL
 from datetime import datetime
 import sqlite3
+import re
 
 app = Flask(__name__)
 
@@ -10,23 +11,15 @@ app = Flask(__name__)
 MUSIC_DIR = "/mnt/musicshare"  # 実際のmp3保存場所（Samba共有）
 DB_PATH = "music.db"           # SQLiteファイル
 
+def safe_filename(name):
+    # ファイル名に使えない文字をアンダースコアに置換
+    return re.sub(r'[<>:"/\\|?*\n\r\t]', '_', name).strip()
+
 # ======================
 # 音楽一覧再生ページ
 # ======================
-@app.route("/")
+@app.route("/", methods=["GET", "POST"])
 def index():
-    conn = sqlite3.connect(DB_PATH)
-    cursor = conn.cursor()
-    cursor.execute("SELECT id, filepath, title, artist FROM music ORDER BY created_at DESC")
-    songs = cursor.fetchall()
-    conn.close()
-    return render_template("index.html", songs=songs)
-
-# ======================
-# 新規追加ページ
-# ======================
-@app.route("/add", methods=["GET", "POST"])
-def add():
     if request.method == "POST":
         url = request.form.get("url")
         try:
@@ -34,7 +27,13 @@ def add():
         except Exception as e:
             return f"<p>❌ エラーが発生しました: {str(e)}</p>"
         return redirect(url_for("index"))
-    return render_template("add.html")
+
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+    cursor.execute("SELECT id, filepath, title, artist FROM music ORDER BY created_at DESC")
+    songs = cursor.fetchall()
+    conn.close()
+    return render_template("index.html", songs=songs)
 
 # ======================
 # mp3ファイルの提供
@@ -59,13 +58,21 @@ def download_audio(url):
 
     with YoutubeDL(ydl_opts) as ydl:
         info = ydl.extract_info(url, download=True)
-        title = info.get("title", "Unknown Title")
+        raw_title = info.get("title", "Unknown Title")
+        title = safe_filename(raw_title)
         artist = info.get("uploader", "Unknown Artist")
         duration = info.get("duration", 0)
 
-        filename = f"{title}.mp3"
-        filepath = os.path.join(MUSIC_DIR, filename)
-        filesize = os.path.getsize(filepath)
+        # ファイルパスを正確に取得する
+        downloaded_filename = ydl.prepare_filename(info)
+        mp3_filepath = os.path.splitext(downloaded_filename)[0] + ".mp3"
+        filename_only = os.path.basename(mp3_filepath)
+        
+        # 確実にファイルが存在するかチェック
+        if not os.path.exists(mp3_filepath):
+            raise FileNotFoundError(f"ファイルが見つかりません: {mp3_filepath}")
+
+        filesize = os.path.getsize(mp3_filepath)
         created_at = datetime.now().isoformat()
 
         conn = sqlite3.connect(DB_PATH)
@@ -73,9 +80,11 @@ def download_audio(url):
         cursor.execute("""
             INSERT INTO music (filepath, title, artist, duration, filesize, created_at, source_url)
             VALUES (?, ?, ?, ?, ?, ?, ?)
-        """, (filename, title, artist, duration, filesize, created_at, url))
+        """, (filename_only, raw_title, artist, duration, filesize, created_at, url))
         conn.commit()
         conn.close()
+
+
 
 # ======================
 # データベース確認
