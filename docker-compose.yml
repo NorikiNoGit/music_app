@@ -11,17 +11,5 @@ services:
     networks:
       - webnet
 
-  caddy:
-    image: caddy:latest
-    container_name: caddy_server
-    ports:
-      - "80:80"
-    volumes:
-      - ./Caddyfile:/etc/caddy/Caddyfile
-    depends_on:
-      - flask
-    networks:
-      - webnet
-
 networks:
   webnet:
