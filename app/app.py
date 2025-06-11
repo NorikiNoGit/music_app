@@ -9,7 +9,7 @@ app = Flask(__name__)
 
 # 設定
 MUSIC_DIR = "/musicshare"  # 実際のmp3保存場所（Samba共有）
-DB_PATH = "music.db"           # SQLiteファイル
+DB_PATH = MUSIC_DIR + "/music.db"           # SQLiteファイル
 
 def safe_filename(name):
     # ファイル名に使えない文字をアンダースコアに置換
