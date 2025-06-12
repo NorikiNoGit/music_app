@@ -8,3 +8,4 @@ services:
       - "8080:8080"
     volumes:
     - ${SHARE_PATH}:/musicshare
+    network_mode: "host" # Linux限定。docker 内部を外部のネットワークに接続
