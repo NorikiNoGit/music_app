@@ -34,7 +34,7 @@ def index():
             dbname="musicdb",
             user="noriki",
             password=os.environ.get("DB_PASSWORD"),
-            host="192.168.11.11",  # ラズパイのIPアドレス　もしかしたらラズパイからは別のアドレスかもしれない
+            host=os.environ.get("DB_HOST"),  # ラズパイのIPアドレス　もしかしたらラズパイからは別のアドレスかもしれない
             port=5432
         )
     cursor = conn.cursor()
@@ -87,7 +87,7 @@ def download_audio(url):
             dbname="musicdb",
             user="noriki",
             password=os.environ.get("DB_PASSWORD"),
-            host="192.168.11.11",  # リモートならIP指定
+            host=os.environ.get("DB_HOST"),  # リモートならIP指定
             port=5432
         )
         cursor = conn.cursor()
@@ -109,7 +109,7 @@ def debug_db():
             dbname="musicdb",
             user="noriki",
             password=os.environ.get("DB_PASSWORD"),
-            host="192.168.11.11",  # リモートならIP指定
+            host=os.environ.get("DB_HOST"),  # リモートならIP指定
             port=5432
         )
     cursor = conn.cursor()
@@ -125,7 +125,7 @@ def edit_entry(music_id):
             dbname="musicdb",
             user="noriki",
             password=os.environ.get("DB_PASSWORD"),
-            host="192.168.11.11",  # リモートならIP指定
+            host=os.environ.get("DB_HOST"),  # リモートならIP指定
             port=5432
         )
     cursor = conn.cursor()
@@ -162,7 +162,7 @@ def delete_entry(music_id):
             dbname="musicdb",
             user="noriki",
             password = os.environ.get("DB_PASSWORD"),
-            host="192.168.11.11",  # リモートならIP指定
+            host=os.environ.get("DB_HOST"),  # リモートならIP指定
             port=5432
         )
 
