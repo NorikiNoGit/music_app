@@ -4,12 +4,15 @@ from yt_dlp import YoutubeDL
 from datetime import datetime
 import sqlite3
 import re
+from dotenv import load_dotenv
+import psycopg2
 
 app = Flask(__name__)
 
 # 設定
 MUSIC_DIR = "/musicshare"  # 実際のmp3保存場所（Samba共有）
-DB_PATH = MUSIC_DIR + "/music.db"           # SQLiteファイル
+
+load_dotenv()  # .envファイルから環境変数を読み込む
 
 def safe_filename(name):
     # ファイル名に使えない文字をアンダースコアに置換
@@ -27,8 +30,13 @@ def index():
         except Exception as e:
             return f"<p>❌ エラーが発生しました: {str(e)}</p>"
         return redirect(url_for("index"))
-
-    conn = sqlite3.connect(DB_PATH)
+    conn = psycopg2.connect(
+            dbname="musicdb",
+            user="noriki",
+            password=os.environ.get("DB_PASSWORD"),
+            host="192.168.11.11",  # ラズパイのIPアドレス　もしかしたらラズパイからは別のアドレスかもしれない
+            port=5432
+        )
     cursor = conn.cursor()
     cursor.execute("SELECT id, filepath, title, artist FROM music ORDER BY created_at DESC")
     songs = cursor.fetchall()
@@ -75,11 +83,17 @@ def download_audio(url):
         filesize = os.path.getsize(mp3_filepath)
         created_at = datetime.now().isoformat()
 
-        conn = sqlite3.connect(DB_PATH)
+        conn = psycopg2.connect(
+            dbname="musicdb",
+            user="noriki",
+            password=os.environ.get("DB_PASSWORD"),
+            host="192.168.11.11",  # リモートならIP指定
+            port=5432
+        )
         cursor = conn.cursor()
         cursor.execute("""
             INSERT INTO music (filepath, title, artist, duration, filesize, created_at, source_url)
-            VALUES (?, ?, ?, ?, ?, ?, ?)
+            VALUES (%s, %s, %s, %s, %s, %s, %s)
         """, (filename_only, raw_title, artist, duration, filesize, created_at, url))
         conn.commit()
         conn.close()
@@ -91,7 +105,13 @@ def download_audio(url):
 # ======================
 @app.route("/debug/db")
 def debug_db():
-    conn = sqlite3.connect(DB_PATH)
+    conn = psycopg2.connect(
+            dbname="musicdb",
+            user="noriki",
+            password=os.environ.get("DB_PASSWORD"),
+            host="192.168.11.11",  # リモートならIP指定
+            port=5432
+        )
     cursor = conn.cursor()
     cursor.execute("SELECT * FROM music ORDER BY created_at DESC")
     rows = cursor.fetchall()
@@ -101,7 +121,13 @@ def debug_db():
 
 @app.route("/debug/edit/<int:music_id>", methods=["GET", "POST"])
 def edit_entry(music_id):
-    conn = sqlite3.connect(DB_PATH)
+    conn = psycopg2.connect(
+            dbname="musicdb",
+            user="noriki",
+            password=os.environ.get("DB_PASSWORD"),
+            host="192.168.11.11",  # リモートならIP指定
+            port=5432
+        )
     cursor = conn.cursor()
 
     if request.method == "POST":
@@ -112,8 +138,8 @@ def edit_entry(music_id):
 
         cursor.execute("""
             UPDATE music
-            SET title = ?, artist = ?, tags = ?, genre_ai = ?
-            WHERE id = ?
+            SET title = %s, artist = %s, tags = %s, genre_ai = %s
+            WHERE id = %s
         """, (title, artist, tags, genre_ai, music_id))
 
         conn.commit()
@@ -121,7 +147,7 @@ def edit_entry(music_id):
         return redirect(url_for("debug_db"))
     
     # GET: 現在の値を取得して表示
-    cursor.execute("SELECT title, artist, tags, genre_ai FROM music WHERE id = ?", (music_id,))
+    cursor.execute("SELECT title, artist, tags, genre_ai FROM music WHERE id = %s", (music_id,))
     result = cursor.fetchone()
     conn.close()
 
@@ -132,9 +158,16 @@ def edit_entry(music_id):
 
 @app.route("/debug/delete/<int:music_id>", methods=["POST"])
 def delete_entry(music_id):
-    conn = sqlite3.connect(DB_PATH)
+    conn = psycopg2.connect(
+            dbname="musicdb",
+            user="noriki",
+            password = os.environ.get("DB_PASSWORD"),
+            host="192.168.11.11",  # リモートならIP指定
+            port=5432
+        )
+
     cursor = conn.cursor()
-    cursor.execute("DELETE FROM music WHERE id = ?", (music_id,))
+    cursor.execute("DELETE FROM music WHERE id = %s", (music_id,))
     conn.commit()
     conn.close()
     return redirect(url_for("debug_db"))
