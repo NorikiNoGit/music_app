@@ -8,9 +8,9 @@ conn = psycopg2.connect(
         dbname="musicdb",
         user="noriki",
         password=os.environ.get("DB_PASSWORD"),
-        host=os.environ.get("DB_HOST"),
+        #host=os.environ.get("DB_HOST"),
         # host="192.168.11.11",  # リモートならIP指定
-        # host="localhost",  # ローカルならlocalhost
+        host="localhost",  # ローカルならlocalhost
         port=5432
     )
 cursor = conn.cursor()
