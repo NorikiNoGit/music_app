@@ -1,191 +1,637 @@
 <!DOCTYPE html>
-<html lang="ja">
+<html lang="ja" data-theme="dark">
 <head>
   <meta charset="UTF-8">
-  <title>🎵 音楽プレイヤー</title>
+  <title>🎵 Music Player</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
   <style>
+    :root[data-theme="dark"] {
+      --primary-color: #6c5ce7;
+      --secondary-color: #a29bfe;
+      --background-color: #1a1a1a;
+      --text-color: #ffffff;
+      --card-bg: #2d2d2d;
+      --hover-color: #7f8c8d;
+      --border-color: rgba(255, 255, 255, 0.1);
+    }
+
+    :root[data-theme="light"] {
+      --primary-color: #3498db;
+      --secondary-color: #2980b9;
+      --background-color: #f5f9fc;
+      --text-color: #2c3e50;
+      --card-bg: #ffffff;
+      --hover-color: #e3f2fd;
+      --border-color: rgba(52, 152, 219, 0.2);
+    }
+
     body {
-      background-color: #fff;
-      color: #212529;
-      font-family: 'Helvetica Neue', sans-serif;
+      background-color: var(--background-color);
+      color: var(--text-color);
+      font-family: 'Noto Sans JP', sans-serif;
+      min-height: 100vh;
+      transition: background-color 0.3s ease, color 0.3s ease;
     }
-    audio {
-      width: 100%;
-      margin-top: 8px;
+
+    .container {
+      max-width: 1200px;
+      padding: 2rem;
     }
+
+    .header {
+      text-align: center;
+      margin-bottom: 3rem;
+      padding: 2rem 0;
+      background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+      border-radius: 15px;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+    }
+
+    .header h1 {
+      font-size: 2.5rem;
+      font-weight: 700;
+      margin: 0;
+      text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+    }
+
+    .music-card {
+      background-color: var(--card-bg);
+      border-radius: 10px;
+      padding: 1.5rem;
+      margin-bottom: 1rem;
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+      border: 1px solid var(--border-color);
+    }
+
+    .music-card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+    }
+
+    .music-info {
+      margin-bottom: 1rem;
+    }
+
+    .music-title {
+      font-size: 1.2rem;
+      font-weight: 500;
+      color: var(--text-color);
+      margin-bottom: 0.5rem;
+    }
+
+    .music-artist {
+      color: var(--secondary-color);
+      font-size: 0.9rem;
+    }
+
     .audio-controls {
       display: flex;
       align-items: center;
       gap: 1rem;
-      margin-top: 0.5rem;
+      margin-top: 1rem;
     }
+
+    .btn-control {
+      background-color: var(--primary-color);
+      border: none;
+      color: white;
+      padding: 0.5rem 1rem;
+      border-radius: 25px;
+      transition: all 0.3s ease;
+    }
+
+    .btn-control:hover {
+      background-color: var(--secondary-color);
+      transform: scale(1.05);
+    }
+
+    .form-control {
+      background-color: var(--card-bg);
+      border: 1px solid var(--border-color);
+      color: var(--text-color);
+      border-radius: 25px;
+      padding: 0.8rem 1.5rem;
+    }
+
+    .form-control::placeholder {
+      color: var(--text-color);
+      opacity: 0.5;
+    }
+
+    .form-control:focus {
+      background-color: var(--card-bg);
+      color: var(--text-color);
+      border-color: var(--primary-color);
+      box-shadow: 0 0 0 0.2rem rgba(108, 92, 231, 0.25);
+    }
+
+    .seek-bar {
+      -webkit-appearance: none;
+      width: 100%;
+      height: 6px;
+      background: var(--border-color);
+      border-radius: 3px;
+      outline: none;
+      opacity: 0;
+      transition: opacity 0.3s ease;
+    }
+
+    .music-card:hover .seek-bar,
+    .music-card.playing .seek-bar {
+      opacity: 1;
+    }
+
+    .seek-bar::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 16px;
+      height: 16px;
+      background: var(--primary-color);
+      border-radius: 50%;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+
+    .seek-bar::-webkit-slider-thumb:hover {
+      transform: scale(1.2);
+    }
+
     .time-display {
       min-width: 60px;
       text-align: right;
       font-size: 0.85rem;
+      color: var(--secondary-color);
+      opacity: 0;
+      transition: opacity 0.3s ease;
     }
+
+    .music-card:hover .time-display,
+    .music-card.playing .time-display {
+      opacity: 1;
+    }
+
+    #now-playing {
+      background-color: var(--card-bg);
+      border-radius: 10px;
+      padding: 1.5rem;
+      margin-bottom: 2rem;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    #now-title {
+      color: var(--text-color) !important;
+      font-size: 1.1rem;
+      margin-top: 0.5rem;
+    }
+
+    .now-playing-header {
+      color: var(--primary-color);
+      font-size: 1.2rem;
+      margin-bottom: 0.5rem;
+    }
+
+    .control-buttons {
+      display: flex;
+      gap: 1rem;
+      margin-bottom: 2rem;
+      justify-content: center;
+    }
+
+    .btn-outline {
+      border: 2px solid var(--primary-color);
+      color: var(--primary-color);
+      background: transparent;
+      padding: 0.8rem 1.5rem;
+      border-radius: 25px;
+      transition: all 0.3s ease;
+      min-width: 120px;
+    }
+
+    .btn-outline:hover {
+      background-color: var(--primary-color);
+      color: white;
+      transform: scale(1.05);
+    }
+
+    .btn-outline:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .btn-outline.active {
+      background-color: var(--primary-color);
+      color: var(--background-color);
+      border-color: var(--primary-color);
+    }
+
     #global-volume {
-      width: 200px;
+      width: 100%;
+      max-width: 300px;
+    }
+
+    .volume-control {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      margin-bottom: 2rem;
+    }
+
+    .volume-icon {
+      color: var(--primary-color);
+      font-size: 1.2rem;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .music-card {
+      animation: fadeIn 0.5s ease-out forwards;
+    }
+
+    .music-card:nth-child(n) {
+      animation-delay: calc(n * 0.1s);
+    }
+
+    .btn-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0;
+      transition: all 0.3s ease;
+    }
+
+    .btn-icon i {
+      font-size: 1.2rem;
+    }
+
+    .btn-icon:hover {
+      transform: scale(1.1);
+    }
+
+    .btn-play {
+      background-color: var(--primary-color);
+      color: white;
+      border: none;
+    }
+
+    .btn-pause {
+      background-color: var(--secondary-color);
+      color: white;
+      border: none;
+    }
+
+    .btn-global {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.8rem 1.5rem;
+      border-radius: 25px;
+      transition: all 0.3s ease;
+      min-width: 120px;
+      justify-content: center;
+    }
+
+    .btn-global i {
+      font-size: 1.2rem;
+    }
+
+    .btn-theme {
+      position: fixed;
+      top: 1rem;
+      right: 1rem;
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background-color: var(--primary-color);
+      color: white;
+      border: none;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      z-index: 1000;
+    }
+
+    .btn-theme:hover {
+      transform: scale(1.1);
     }
   </style>
 </head>
-<body class="container py-4">
-  <h1 class="mb-4">🎧 音楽プレイヤー</h1>
+<body>
+  <button onclick="toggleTheme()" class="btn-theme" id="theme-toggle">
+    <i class="fas fa-moon"></i>
+  </button>
 
-  <form method="post" class="mb-4 row g-2">
-    <div class="col-md-9 col-sm-12">
-      <input type="text" name="url" class="form-control" placeholder="YouTubeのURLを入力" required>
+  <div class="container">
+    <div class="header">
+      <h1>🎧 Music Player</h1>
     </div>
-    <div class="col-md-3 col-sm-12">
-      <button type="submit" class="btn btn-primary w-100">🎧 mp3変換して追加</button>
-    </div>
-  </form>
-  
 
-  <div class="mb-3">
-    <label for="global-volume" class="form-label">🔊 音量（全体）</label>
-    <input type="range" id="global-volume" min="0" max="1" step="0.01" value="1">
-  </div>
-
-  <div id="now-playing" class="mb-3">
-    <h5>🎶 Now Playing</h5>
-    <p id="now-title" class="mb-0 text-muted">（なし）</p>
-  </div>
-
-  <div class="mb-4 d-flex flex-wrap gap-2">
-    <button onclick="playSequential()" class="btn btn-outline-success">▶️ 順番に再生</button>
-    <button onclick="playShuffle()" class="btn btn-outline-primary">🔀 ランダム再生</button>
-    <button onclick="pauseAll()" class="btn btn-outline-warning">⏸ すべて一時停止</button>
-  </div>
-
-  {% if songs %}
-    <div class="list-group">
-      {% for song in songs %}
-        <div class="list-group-item">
-          <strong>{{ song[2] }}</strong> - {{ song[3] }}<br>
-          <audio id="audio{{ loop.index }}" preload="metadata" ontimeupdate="updateProgress({{ loop.index }})" onloadedmetadata="initDuration({{ loop.index }})">
-            <source src="{{ url_for('serve_music', filename=song[1]) }}" type="audio/mpeg">
-          </audio>
-          <div class="audio-controls">
-            <button onclick="togglePlayPause({{ loop.index }})" id="toggle-btn-{{ loop.index }}" class="btn btn-sm btn-outline-success">▶️ 再生</button>
-            <input type="range" id="seek-bar-{{ loop.index }}" min="0" value="0" step="0.1" oninput="seekSlider({{ loop.index }}, this.value)" class="form-range" style="width: 200px;">
-            <div class="time-display" id="time-display-{{ loop.index }}">0:00</div>
-          </div>
+    <form method="post" class="mb-4">
+      <div class="row g-3">
+        <div class="col-md-9">
+          <input type="text" name="url" class="form-control" placeholder="YouTubeのURLを入力" required>
         </div>
-      {% endfor %}
-    </div>
-  {% else %}
-    <p>🎶 まだ音楽がありません。上のフォームから追加してみましょう。</p>
-  {% endif %}
+        <div class="col-md-3">
+          <button type="submit" class="btn btn-control w-100">
+            <i class="fas fa-plus me-2"></i>音楽を追加
+          </button>
+        </div>
+      </div>
+    </form>
 
-  <div class="mt-4">
-    <a href="{{ url_for('debug_db') }}" class="btn btn-link">🛠 開発者モードへ</a>
+    <div id="now-playing" class="mb-4">
+      <div class="now-playing-header">
+        <i class="fas fa-play-circle me-2"></i>Now Playing
+      </div>
+      <p id="now-title" class="mb-0">（なし）</p>
+    </div>
+
+    <div class="control-buttons">
+      <button onclick="toggleSequential()" class="btn btn-outline" id="sequential-btn">
+        <i class="fas fa-list me-2"></i>順番に再生
+      </button>
+      <button onclick="toggleShuffle()" class="btn btn-outline" id="shuffle-btn">
+        <i class="fas fa-random me-2"></i>ランダム再生
+      </button>
+      <button onclick="playPrev()" class="btn btn-outline" id="prev-btn">
+        <i class="fas fa-step-backward me-2"></i>前の曲
+      </button>
+      <button onclick="playNext()" class="btn btn-outline" id="next-btn">
+        <i class="fas fa-step-forward me-2"></i>次の曲
+      </button>
+      <button onclick="toggleGlobalPlayPause()" class="btn btn-primary" id="global-play-pause">
+        <i class="fas fa-play me-2"></i><span>再生</span>
+      </button>
+    </div>
+
+    {% if songs %}
+      <div class="music-list">
+        {% for song in songs %}
+          <div class="music-card">
+            <div class="music-info">
+              <div class="music-title">{{ song[2] }}</div>
+              <div class="music-artist">{{ song[3] }}</div>
+            </div>
+            <audio id="audio{{ loop.index }}" preload="metadata" ontimeupdate="updateProgress({{ loop.index }})" onloadedmetadata="initDuration({{ loop.index }})">
+              <source src="{{ url_for('serve_music', filename=song[1]) }}" type="audio/mpeg">
+            </audio>
+            <div class="audio-controls">
+              <button onclick="togglePlayPause({{ loop.index }})" id="toggle-btn-{{ loop.index }}" class="btn btn-icon btn-play">
+                <i class="fas fa-play"></i>
+              </button>
+              <input type="range" id="seek-bar-{{ loop.index }}" min="0" value="0" step="0.1" oninput="seekSlider({{ loop.index }}, this.value)" class="seek-bar">
+              <div class="time-display" id="time-display-{{ loop.index }}">0:00</div>
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+    {% else %}
+      <div class="text-center py-5">
+        <i class="fas fa-music fa-3x mb-3" style="color: var(--primary-color);"></i>
+        <p>🎶 まだ音楽がありません。上のフォームから追加してみましょう。</p>
+      </div>
+    {% endif %}
+
+    <div class="mt-4 text-center">
+      <a href="{{ url_for('debug_db') }}" class="btn btn-outline">
+        <i class="fas fa-cog me-2"></i>開発者モードへ
+      </a>
+    </div>
   </div>
 
   <script>
     const audios = Array.from(document.getElementsByTagName('audio'));
     const titles = {{ songs | map(attribute=2) | list | tojson }};
     const artists = {{ songs | map(attribute=3) | list | tojson }};
+    let currentIndex = -1;
+    let isShuffleMode = false;
+    let playQueue = [];
 
     function updateNowPlaying(title, artist) {
       document.getElementById("now-title").textContent = `${title} - ${artist}`;
     }
 
+    function resetAudioTime(audio) {
+      audio.currentTime = 0;
+      const index = audios.indexOf(audio) + 1;
+      const seekBar = document.getElementById(`seek-bar-${index}`);
+      const timeDisplay = document.getElementById(`time-display-${index}`);
+      if (seekBar) seekBar.value = 0;
+      if (timeDisplay) timeDisplay.textContent = '0:00';
+    }
+
     function pauseAll() {
-      audios.forEach((audio, i) => {
+      audios.forEach(audio => {
         audio.pause();
-        const btn = document.getElementById(`toggle-btn-${i + 1}`);
-        if (btn) {
-          btn.innerText = "▶️ 再生";
-          btn.classList.remove("btn-outline-warning");
-          btn.classList.add("btn-outline-success");
+      });
+      document.querySelectorAll('.btn-pause').forEach(btn => {
+        btn.innerHTML = '<i class="fas fa-play"></i>';
+        btn.classList.remove('btn-pause');
+        btn.classList.add('btn-play');
+      });
+      document.querySelectorAll('.music-card.playing').forEach(card => {
+        card.classList.remove('playing');
+      });
+    }
+
+    function toggleSequential() {
+      isShuffleMode = false;
+      playQueue = [];
+      
+      const sequentialBtn = document.getElementById('sequential-btn');
+      const shuffleBtn = document.getElementById('shuffle-btn');
+      
+      if (sequentialBtn) {
+        sequentialBtn.classList.add('active');
+      }
+      if (shuffleBtn) {
+        shuffleBtn.classList.remove('active');
+      }
+    }
+
+    function toggleShuffle() {
+      isShuffleMode = !isShuffleMode;
+      const shuffleBtn = document.getElementById('shuffle-btn');
+      const sequentialBtn = document.getElementById('sequential-btn');
+      
+      if (shuffleBtn) {
+        if (isShuffleMode) {
+          shuffleBtn.classList.add('active');
+          sequentialBtn.classList.remove('active');
+          // シャッフルキューを初期化
+          playQueue = Array.from({length: audios.length}, (_, i) => i);
+          for (let i = playQueue.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [playQueue[i], playQueue[j]] = [playQueue[j], playQueue[i]];
+          }
+          // 現在再生中の曲をキューから除外
+          if (currentIndex !== -1) {
+            playQueue = playQueue.filter(i => i !== currentIndex);
+          }
+        } else {
+          shuffleBtn.classList.remove('active');
+          sequentialBtn.classList.add('active');
+          playQueue = [];
+        }
+      }
+    }
+
+    function playNext() {
+      if (currentIndex === -1) return;
+
+      let nextIndex;
+      if (isShuffleMode) {
+        if (playQueue.length === 0) {
+          // キューが空の場合、新しいキューを生成
+          playQueue = Array.from({length: audios.length}, (_, i) => i);
+          for (let i = playQueue.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [playQueue[i], playQueue[j]] = [playQueue[j], playQueue[i]];
+          }
+        }
+        nextIndex = playQueue.shift();
+      } else {
+        nextIndex = (currentIndex + 1) % audios.length;
+      }
+
+      playAudio(nextIndex);
+    }
+
+    function playPrev() {
+      if (currentIndex === -1) return;
+
+      let prevIndex;
+      if (isShuffleMode) {
+        if (playQueue.length === 0) {
+          // キューが空の場合、新しいキューを生成
+          playQueue = Array.from({length: audios.length}, (_, i) => i);
+          for (let i = playQueue.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [playQueue[i], playQueue[j]] = [playQueue[j], playQueue[i]];
+          }
+        }
+        // 前の曲をキューの最後に追加
+        playQueue.unshift(currentIndex);
+        prevIndex = playQueue.pop();
+      } else {
+        prevIndex = (currentIndex - 1 + audios.length) % audios.length;
+      }
+
+      playAudio(prevIndex);
+    }
+
+    function playAudio(index) {
+      // 他の曲をすべて一時停止
+      audios.forEach((audio, i) => {
+        if (i !== index) {
+          audio.pause();
+          const btn = document.getElementById(`toggle-btn-${i + 1}`);
+          if (btn) {
+            btn.innerHTML = '<i class="fas fa-play"></i>';
+            btn.classList.remove('btn-pause');
+            btn.classList.add('btn-play');
+          }
+          const card = btn?.closest('.music-card');
+          if (card) {
+            card.classList.remove('playing');
+          }
         }
       });
+
+      const audio = audios[index];
+      const btn = document.getElementById(`toggle-btn-${index + 1}`);
+      const globalBtn = document.getElementById('global-play-pause');
+      const musicCard = btn.closest('.music-card');
+      
+      audio.play();
+      currentIndex = index;
+      updateNowPlaying(titles[index], artists[index]);
+      
+      if (btn) {
+        btn.innerHTML = '<i class="fas fa-pause"></i>';
+        btn.classList.remove('btn-play');
+        btn.classList.add('btn-pause');
+      }
+
+      if (globalBtn) {
+        globalBtn.innerHTML = '<i class="fas fa-pause"></i><span>一時停止</span>';
+        globalBtn.classList.remove('btn-play');
+        globalBtn.classList.add('btn-pause');
+      }
+
+      if (musicCard) {
+        musicCard.classList.add('playing');
+      }
+
+      audio.onended = () => {
+        playNext();
+      };
     }
 
     function togglePlayPause(index) {
       const selectedAudio = audios[index - 1];
       const selectedBtn = document.getElementById(`toggle-btn-${index}`);
+      const globalBtn = document.getElementById('global-play-pause');
+      const musicCard = selectedBtn.closest('.music-card');
 
       if (selectedAudio.paused) {
-        pauseAll();
+        // 他の曲をすべて一時停止
+        audios.forEach((audio, i) => {
+          if (i !== index - 1) {
+            audio.pause();
+            const btn = document.getElementById(`toggle-btn-${i + 1}`);
+            if (btn) {
+              btn.innerHTML = '<i class="fas fa-play"></i>';
+              btn.classList.remove('btn-pause');
+              btn.classList.add('btn-play');
+            }
+            const card = btn?.closest('.music-card');
+            if (card) {
+              card.classList.remove('playing');
+            }
+          }
+        });
+
         selectedAudio.play();
-        updateNowPlaying(titles[index - 1], artists[index - 1]);
-        selectedBtn.innerText = "⏸ 一時停止";
-        selectedBtn.classList.remove("btn-outline-success");
-        selectedBtn.classList.add("btn-outline-warning");
-        selectedAudio.onended = () => {
-          selectedBtn.innerText = "▶️ 再生";
-          selectedBtn.classList.remove("btn-outline-warning");
-          selectedBtn.classList.add("btn-outline-success");
-          updateNowPlaying("（終了）", "");
-        };
+        selectedBtn.innerHTML = '<i class="fas fa-pause"></i>';
+        selectedBtn.classList.remove('btn-play');
+        selectedBtn.classList.add('btn-pause');
+        currentIndex = index - 1;
+
+        if (globalBtn) {
+          globalBtn.innerHTML = '<i class="fas fa-pause"></i><span>一時停止</span>';
+          globalBtn.classList.remove('btn-play');
+          globalBtn.classList.add('btn-pause');
+        }
+
+        if (musicCard) {
+          musicCard.classList.add('playing');
+        }
       } else {
         selectedAudio.pause();
-        selectedBtn.innerText = "▶️ 再生";
-        selectedBtn.classList.remove("btn-outline-warning");
-        selectedBtn.classList.add("btn-outline-success");
-      }
-    }
+        selectedBtn.innerHTML = '<i class="fas fa-play"></i>';
+        selectedBtn.classList.remove('btn-pause');
+        selectedBtn.classList.add('btn-play');
 
-    function playSequential() {
-      pauseAll();
-      let i = 0;
-      function playNext() {
-        if (i >= audios.length) {
-          updateNowPlaying("（終了）", "");
-          return;
+        if (globalBtn) {
+          globalBtn.innerHTML = '<i class="fas fa-play"></i><span>再生</span>';
+          globalBtn.classList.remove('btn-pause');
+          globalBtn.classList.add('btn-play');
         }
-        const audio = audios[i];
-        const btn = document.getElementById(`toggle-btn-${i + 1}`);
-        audio.play();
-        updateNowPlaying(titles[i], artists[i]);
-        btn.innerText = "⏸ 一時停止";
-        btn.classList.remove("btn-outline-success");
-        btn.classList.add("btn-outline-warning");
-        audio.onended = () => {
-          btn.innerText = "▶️ 再生";
-          btn.classList.remove("btn-outline-warning");
-          btn.classList.add("btn-outline-success");
-          i++;
-          playNext();
-        };
-      }
-      playNext();
-    }
 
-    function playShuffle() {
-      pauseAll();
-      let indices = Array.from(audios.keys());
-      for (let i = indices.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [indices[i], indices[j]] = [indices[j], indices[i]];
-      }
-      let i = 0;
-      function playNext() {
-        if (i >= indices.length) {
-          updateNowPlaying("（終了）", "");
-          return;
+        if (musicCard) {
+          musicCard.classList.remove('playing');
         }
-        const idx = indices[i];
-        const audio = audios[idx];
-        const btn = document.getElementById(`toggle-btn-${idx + 1}`);
-        audio.play();
-        updateNowPlaying(titles[idx], artists[idx]);
-        btn.innerText = "⏸ 一時停止";
-        btn.classList.remove("btn-outline-success");
-        btn.classList.add("btn-outline-warning");
-        audio.onended = () => {
-          btn.innerText = "▶️ 再生";
-          btn.classList.remove("btn-outline-warning");
-          btn.classList.add("btn-outline-success");
-          i++;
-          playNext();
-        };
       }
-      playNext();
     }
 
     function updateProgress(index) {
@@ -209,10 +655,95 @@
       audios[index - 1].currentTime = parseFloat(value);
     }
 
-    const volumeSlider = document.getElementById("global-volume");
-    volumeSlider.addEventListener("input", () => {
-      const volume = volumeSlider.value;
-      audios.forEach(audio => audio.volume = volume);
+    function toggleGlobalPlayPause() {
+      const globalBtn = document.getElementById('global-play-pause');
+      const isPlaying = globalBtn.classList.contains('btn-pause');
+
+      if (isPlaying) {
+        // 一時停止時は現在の再生位置を保持
+        const currentAudio = audios[currentIndex];
+        currentAudio.pause();
+        globalBtn.innerHTML = '<i class="fas fa-play"></i><span>再生</span>';
+        globalBtn.classList.remove('btn-pause');
+        globalBtn.classList.add('btn-play');
+
+        const currentBtn = document.getElementById(`toggle-btn-${currentIndex + 1}`);
+        if (currentBtn) {
+          currentBtn.innerHTML = '<i class="fas fa-play"></i>';
+          currentBtn.classList.remove('btn-pause');
+          currentBtn.classList.add('btn-play');
+        }
+
+        const currentCard = currentBtn?.closest('.music-card');
+        if (currentCard) {
+          currentCard.classList.remove('playing');
+        }
+      } else {
+        if (currentIndex === -1) {
+          playAudio(0);
+        } else {
+          const currentAudio = audios[currentIndex];
+          // 他の曲をすべて一時停止
+          audios.forEach((audio, i) => {
+            if (i !== currentIndex) {
+              audio.pause();
+              const btn = document.getElementById(`toggle-btn-${i + 1}`);
+              if (btn) {
+                btn.innerHTML = '<i class="fas fa-play"></i>';
+                btn.classList.remove('btn-pause');
+                btn.classList.add('btn-play');
+              }
+              const card = btn?.closest('.music-card');
+              if (card) {
+                card.classList.remove('playing');
+              }
+            }
+          });
+
+          currentAudio.play();
+          const currentBtn = document.getElementById(`toggle-btn-${currentIndex + 1}`);
+          const currentCard = currentBtn?.closest('.music-card');
+          
+          if (currentBtn) {
+            currentBtn.innerHTML = '<i class="fas fa-pause"></i>';
+            currentBtn.classList.remove('btn-play');
+            currentBtn.classList.add('btn-pause');
+          }
+
+          if (currentCard) {
+            currentCard.classList.add('playing');
+          }
+
+          globalBtn.innerHTML = '<i class="fas fa-pause"></i><span>一時停止</span>';
+          globalBtn.classList.remove('btn-play');
+          globalBtn.classList.add('btn-pause');
+        }
+      }
+    }
+
+    function toggleTheme() {
+      const html = document.documentElement;
+      const themeToggle = document.getElementById('theme-toggle');
+      const currentTheme = html.getAttribute('data-theme');
+      const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+      
+      html.setAttribute('data-theme', newTheme);
+      themeToggle.innerHTML = newTheme === 'dark' ? 
+        '<i class="fas fa-moon"></i>' : 
+        '<i class="fas fa-sun"></i>';
+      
+      // テーマ設定をローカルストレージに保存
+      localStorage.setItem('theme', newTheme);
+    }
+
+    // ページ読み込み時に保存されたテーマを適用
+    document.addEventListener('DOMContentLoaded', () => {
+      const savedTheme = localStorage.getItem('theme') || 'dark';
+      document.documentElement.setAttribute('data-theme', savedTheme);
+      const themeToggle = document.getElementById('theme-toggle');
+      themeToggle.innerHTML = savedTheme === 'dark' ? 
+        '<i class="fas fa-moon"></i>' : 
+        '<i class="fas fa-sun"></i>';
     });
   </script>
 </body>
