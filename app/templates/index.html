@@ -520,9 +520,49 @@
     let currentIndex = -1;
     let isShuffleMode = false;
     let playQueue = [];
+    let isInitialized = false;
 
-    // オーディオの再生状態を管理
-    const audioStates = new Map();
+    // オーディオの初期化
+    function initializeAudio() {
+      if (isInitialized) return;
+      
+      audios.forEach((audio, index) => {
+        // オーディオの設定
+        audio.preload = 'auto';
+        audio.volume = 1.0;
+        
+        // イベントリスナーの設定
+        audio.addEventListener('canplay', () => handleCanPlay(index + 1));
+        audio.addEventListener('waiting', () => handleWaiting(index + 1));
+        audio.addEventListener('playing', () => handlePlaying(index + 1));
+        audio.addEventListener('ended', () => {
+          if (currentIndex === index) {
+            playNext();
+          }
+        });
+        
+        // エラーハンドリング
+        audio.addEventListener('error', (e) => {
+          console.error(`Audio ${index + 1} error:`, e);
+          const btn = document.getElementById(`toggle-btn-${index + 1}`);
+          if (btn) {
+            btn.innerHTML = '<i class="fas fa-exclamation-circle"></i>';
+            btn.disabled = true;
+          }
+        });
+      });
+      
+      isInitialized = true;
+    }
+
+    // ページ読み込み時の初期化
+    document.addEventListener('DOMContentLoaded', () => {
+      initializeAudio();
+      // 最初の曲をプリロード
+      if (audios.length > 0) {
+        audios[0].load();
+      }
+    });
 
     function updateNowPlaying(title, artist) {
       document.getElementById("now-title").textContent = `${title} - ${artist}`;
@@ -755,31 +795,41 @@
         // 再生を開始
         const playPromise = selectedAudio.play();
         if (playPromise !== undefined) {
-          playPromise.then(() => {
-            selectedBtn.innerHTML = '<i class="fas fa-pause"></i>';
-            selectedBtn.disabled = false;
-            selectedBtn.classList.remove('btn-play');
-            selectedBtn.classList.add('btn-pause');
-            currentIndex = index - 1;
-            updateNowPlaying(titles[currentIndex], artists[currentIndex]);
+          playPromise
+            .then(() => {
+              selectedBtn.innerHTML = '<i class="fas fa-pause"></i>';
+              selectedBtn.disabled = false;
+              selectedBtn.classList.remove('btn-play');
+              selectedBtn.classList.add('btn-pause');
+              currentIndex = index - 1;
+              updateNowPlaying(titles[currentIndex], artists[currentIndex]);
 
-            if (globalBtn) {
-              globalBtn.innerHTML = '<i class="fas fa-pause"></i><span>一時停止</span>';
-              globalBtn.classList.remove('btn-play');
-              globalBtn.classList.add('btn-pause');
-            }
+              if (globalBtn) {
+                globalBtn.innerHTML = '<i class="fas fa-pause"></i><span>一時停止</span>';
+                globalBtn.classList.remove('btn-play');
+                globalBtn.classList.add('btn-pause');
+              }
 
-            if (musicCard) {
-              musicCard.classList.add('playing');
-            }
+              if (musicCard) {
+                musicCard.classList.add('playing');
+              }
 
-            // 次の曲をプリロード
-            preloadNextAudio(currentIndex);
-          }).catch(error => {
-            console.error('再生エラー:', error);
-            selectedBtn.innerHTML = '<i class="fas fa-play"></i>';
-            selectedBtn.disabled = false;
-          });
+              // 次の曲をプリロード
+              preloadNextAudio(currentIndex);
+            })
+            .catch(error => {
+              console.error('再生エラー:', error);
+              selectedBtn.innerHTML = '<i class="fas fa-play"></i>';
+              selectedBtn.disabled = false;
+              
+              // エラー時の再試行
+              setTimeout(() => {
+                if (selectedAudio.paused) {
+                  selectedAudio.load();
+                  selectedAudio.play().catch(e => console.error('再試行エラー:', e));
+                }
+              }, 1000);
+            });
         }
       } else {
         // 一時停止時の処理
@@ -834,17 +884,39 @@
       const musicCard = currentBtn.closest('.music-card');
 
       if (currentAudio.paused) {
-        currentAudio.play();
-        currentBtn.innerHTML = '<i class="fas fa-pause"></i>';
-        currentBtn.classList.remove('btn-play');
-        currentBtn.classList.add('btn-pause');
-        globalBtn.innerHTML = '<i class="fas fa-pause"></i><span>一時停止</span>';
-        globalBtn.classList.remove('btn-play');
-        globalBtn.classList.add('btn-pause');
-        if (musicCard) {
-          musicCard.classList.add('playing');
+        currentBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+        currentBtn.disabled = true;
+
+        const playPromise = currentAudio.play();
+        if (playPromise !== undefined) {
+          playPromise
+            .then(() => {
+              currentBtn.innerHTML = '<i class="fas fa-pause"></i>';
+              currentBtn.disabled = false;
+              currentBtn.classList.remove('btn-play');
+              currentBtn.classList.add('btn-pause');
+              globalBtn.innerHTML = '<i class="fas fa-pause"></i><span>一時停止</span>';
+              globalBtn.classList.remove('btn-play');
+              globalBtn.classList.add('btn-pause');
+              if (musicCard) {
+                musicCard.classList.add('playing');
+              }
+              updateNowPlaying(titles[currentIndex], artists[currentIndex]);
+            })
+            .catch(error => {
+              console.error('再生エラー:', error);
+              currentBtn.innerHTML = '<i class="fas fa-play"></i>';
+              currentBtn.disabled = false;
+              
+              // エラー時の再試行
+              setTimeout(() => {
+                if (currentAudio.paused) {
+                  currentAudio.load();
+                  currentAudio.play().catch(e => console.error('再試行エラー:', e));
+                }
+              }, 1000);
+            });
         }
-        updateNowPlaying(titles[currentIndex], artists[currentIndex]);
       } else {
         currentAudio.pause();
         currentBtn.innerHTML = '<i class="fas fa-play"></i>';
@@ -882,13 +954,6 @@
       themeToggle.innerHTML = savedTheme === 'dark' ? 
         '<i class="fas fa-moon"></i>' : 
         '<i class="fas fa-sun"></i>';
-    });
-
-    // ページ読み込み時に最初の曲をプリロード
-    window.addEventListener('load', () => {
-      if (audios.length > 0) {
-        audios[0].load();
-      }
     });
   </script>
 </body>
